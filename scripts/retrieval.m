@@ -87,5 +87,7 @@ zk = (z*1e3)'*k;
 
 pm = exp(1i.*zk);
 
+GGuess = kron(Gauss,ones(300,1)); 
 
-GGuess = Gauss*pm;
+GGuess = Gauss.*pm;
+% plot(w2,(abs(Gauss)).^2)
