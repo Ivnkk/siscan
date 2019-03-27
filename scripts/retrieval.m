@@ -88,6 +88,7 @@ zk = (z*1e3)'*k;
 pm = exp(1i.*zk);
 
 
-GGuess = Gauss.*pm;
+GGuess = Gauss.*pm; %Initial guess multiplied by pm
+
 
 

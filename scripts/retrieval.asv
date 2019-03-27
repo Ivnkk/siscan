@@ -89,3 +89,4 @@ pm = exp(1i.*zk);
 
 
 GGuess = Gauss.*pm;
+
