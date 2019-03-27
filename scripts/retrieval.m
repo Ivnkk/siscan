@@ -16,9 +16,9 @@ img = imread('siscan1ststage3','jpg');
 % img(img<5) = 0;
 
 figure();
-% for k = 1:2
-% img = imdiffusefilt(img); % some anisotropic filtering to the image
-% end
+for k = 1:2
+img = imdiffusefilt(img); % some anisotropic filtering to the image
+end
 z = linspace(2,6,300); % glass insertion range. think about proper calibration
 n = 4;
 wl = arrayfun(@(i) mean(wl(i:i+n-1)),1:n:length(wl)-n+1); %resizing the wavelength vector to match the binned image
@@ -88,4 +88,6 @@ zk = (z*1e3)'*k;
 pm = exp(1i.*zk);
 
 
-GGuess = Gauss*pm;
+GGuess = Gauss.*pm;
+
+
