@@ -95,6 +95,4 @@ GGuess = kron(Gauss,ones(300,1));
 GGuess = Gauss.*pm; %Initial guess multiplied by pm
 
 
-% plot(w2,(abs(Gauss)).^2)
-
 
