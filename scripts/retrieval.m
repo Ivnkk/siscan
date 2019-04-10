@@ -89,7 +89,7 @@ pm = exp(1i.*zk);
 
 GGuess = kron(Gauss,ones(300,1)); 
 
-<<<<<<< HEAD
+
 GGuess = Gauss.*pm;
 % plot(w2,(abs(Gauss)).^2)
 =======
@@ -97,4 +97,3 @@ GGuess = Gauss.*pm; %Initial guess multiplied by pm
 
 
 
->>>>>>> e8c9b28fbc8cb83047e0feaa94e3b94cbdb79527
