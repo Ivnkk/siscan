@@ -6,12 +6,13 @@ classdef IDSCamera < Camera
     properties
         
         cam = [];
-        exposure = 0.3e-3; % default: 0.3ms exposure time
+        exposure = 0.3e-4; % default: 0.3ms exposure time
         binit = false;
         bits = [];
         serial = [];
         img = [];
         fps = 14; %14 Hz default framerate
+        live = false;
     end
     
     methods
@@ -48,15 +49,15 @@ classdef IDSCamera < Camera
                     'SUCCESS')
                 error('Could not set display mode');
             end
-            %   Set colormode to 12-bit RAW
-            if ~strcmpi(char(this.cam.PixelFormat.Set(uEye.Defines.ColorMode.SensorRaw12)), ...
+            %   Set colormode 
+            if ~strcmpi(char(this.cam.PixelFormat.Set(uEye.Defines.ColorMode.Mono8)), ...
                     'SUCCESS')
-                error('Could not set pixel format to 12 bits. Maybe more coding required?');
+                error('Could not set pixel format.');
             end
-            %   Set trigger mode to software (single image acquisition)
-            if ~strcmpi(char(this.cam.Trigger.Set(uEye.Defines.TriggerMode.Software)), 'SUCCESS')
-                error('Could not set trigger format to software.');
-            end
+%             %   Set trigger mode to software (single image acquisition)
+%             if ~strcmpi(char(this.cam.Trigger.Set(uEye.Defines.TriggerMode.Software)), 'SUCCESS')
+%                 error('Could not set trigger format to software.');
+%             end
             
             % get /set framerate
             setFramerate(this,this.fps);
@@ -126,21 +127,60 @@ classdef IDSCamera < Camera
             end
             
             %   Extract uEye image
-            [ErrChk, tmp] = this.cam.Memory.CopyToArray(this.img.ID,uEye.Defines.ColorMode.SensorRaw12);
+            [ErrChk, tmp] = this.cam.Memory.CopyToArray(this.img.ID,uEye.Defines.ColorMode.Mono8);
             if ~strcmpi(char(ErrChk), 'SUCCESS')
                 error('Could not obtain image data');
             end
             
             %   Reshape image
-            data = reshape(uint16(tmp), [this.img.Width, this.img.Height, this.img.Bits/this.cam.PixelFormat.GetBitsPerPixel]).';
+            data = reshape(uint8(tmp), [this.img.Width, this.img.Height, this.img.Bits/this.cam.PixelFormat.GetBitsPerPixel]).';
             
         end
         
-        % go into LiveView
+        % go into LiveView and display the image
         
-        function lw = startLiveView(this)
-            lw = this.cam.Acquisition.Capture; 
+        function startLiveView(this)
+            this.cam.Acquisition.Capture; 
+            
+            if ~strcmpi(char(this.cam.Acquisition.Capture), 'CAPTURE_RUNNING')
+                error('Could not start the live video');
+            else
+                this.live = true;
+            end 
+%            this.img.MemorySequence.InitImageQueue() %initialize image queue
         end
+            
+        function data = extractImage(this)    
+                %   Extract uEye image
+            [ErrChk, tmp] = this.cam.Memory.CopyToArray(this.img.ID,uEye.Defines.ColorMode.Mono8);
+            if ~strcmpi(char(ErrChk), 'SUCCESS')
+                error('Could not obtain image data');
+            end
+            
+            %   Reshape image
+            data = reshape(uint8(tmp), [this.img.Width, this.img.Height, this.img.Bits/this.cam.PixelFormat.GetBitsPerPixel]).';
+         
+        end
+        
+        
+        
+        % stop live acquisition
+        
+        function stopLiveView(this)
+            if this.live
+%                 this.img.MemorySequence.ExitImageQueue()
+                this.cam.Acquisition.Stop
+                fprintf('Acquisition stopped.\n')
+            else
+                error('Camera is not live');
+            end
+            this.live = false;
+        end
+        
+        
+        %uEye.GainHardwareScaled.SetMaster(int s32Value)  
+      
+        % gain setting for later implementation
         
         % set the exposure time in seconds
         function setExposure(this,expTime) % in s
@@ -159,7 +199,7 @@ classdef IDSCamera < Camera
             
             this.cam.Timing.Exposure.Set(exposure_time);
             [~,val] = this.cam.Timing.Exposure.Get;
-            %fprintf('Exposure time of uEye set to %.1fms.\n',val)
+            fprintf('Exposure time of uEye set to %.1fms.\n',val)
             
             this.exposure = expTime;
         end
