@@ -1,8 +1,7 @@
 % Dispersion scan retrieval algorithm
 % Based on "Fast iterative retrieval algorithm for ultrashort pulse
 % characterization using dispersion scans" paper
-clc
-clear
+
 
 %% Load and process data
 load('wavelength.mat') %spectrometer wavelength calibration file
@@ -53,7 +52,7 @@ w = 2*pi*c./(wl.*1e-9)*1e-15; %frequency in rad/fs
 plot(w,GDD);
 
 
- w2 = linspace(w(1),w(end),480);
+ w2 = linspace(w(80),w(420),340);
 % 
 GDD = interp1(w,GDD,w2,'linear');
 plot(w2,GDD);
@@ -65,7 +64,7 @@ phase = cumtrapz(w2,GD);
 % %     GD(k+1) = GD(k) + h*GDD
 % % end
 
-%  plot(w2,phase)
+ plot(w2,phase)
 % 
 % 
 %  
@@ -86,14 +85,13 @@ k = w2.*n./c;
 
 zk = (z*1e3)'*k;
 
-GGuess = kron(Gauss,ones(300,1)); 
+
 iter = 1;
 
 pm = exp(1i.*zk);
 
 %multiply phase matrix by your gaussian guess
-for k = 1:10
-
+GGuess = kron(Gauss,ones(300,1)); 
 
 % plot(w2,(abs(Gauss)).^2)
 
@@ -101,7 +99,7 @@ GGuess = GGuess.*pm; %Initial guess multiplied by pm
 
 
 %to time domain
-t = linspace(2*pi/w2(1),2*pi/w2(end),480);
+t = linspace(2*pi/w2(1),2*pi/w2(end),340);
 Gt = ifft(GGuess,[],2).*exp(1i.*w2(1).*t);
 
 %shg
@@ -110,28 +108,26 @@ Gshgt = Gt.^2.*exp(-1i.*w2(1).*t);
 Gshgw = fft(Gshgt,[],2);
 
 %multiply by measured intensity
-Gup = sqrt(im2double(img(:,:))).*exp(1i.*angle(Gshgw));
+Gup = sqrt(im2double(img(:,80:419))).*exp(1i.*angle(Gshgw));
 figure(2)
 imagesc(abs(Gup))
 
 %to time domain
-Gtr = ifft(Gup,[],2).*exp(1i.*w2(1).*t);
+Gtr = ifft(Gup,[],2);
 
 %P coeff
 P = Gtr.*conj(Gt);
 
 %next guess
-Gt2 = nthroot(abs(P),3).*exp(1i.*angle(P)).*exp(-1i.*w2(1).*t);
+Gt2 = nthroot(abs(P),3).*exp(1i.*angle(P));
 
 %to frequency domain and remove phase from glass
 
 Gw2 = fft(Gt2,[],2).*conj(pm);
 
-deltaZ = z(2)-z(1);
 
 
-GGuess = sum(Gw2)./deltaZ;
-end
 
-imagesc(abs(GGuess))
+
+
 
