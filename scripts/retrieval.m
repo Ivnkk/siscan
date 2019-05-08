@@ -20,7 +20,7 @@ img = imread('siscan1ststage3','jpg'); %scan to load
 
 %% Constants
 
-tau = 7; %FWHM of the pulse in time domain in fs
+tau = 6; %FWHM of the pulse in time domain in fs
 
 c = 3e8; %speed of light in vacuum, m/s
 
@@ -30,7 +30,7 @@ w0 = 2*pi*(c/wl_0)*1e-15; %central frequency, rad/fs
 
 sigma = 8*log(2)/(tau^2); %std.dev in gaussian pulse 1/fs^2
 
-wf_1 = 2*pi*(c/wlf(1))*1e-6 + 0.4; %border of the freq. range #1
+wf_1 = 2*pi*(c/wlf(1))*1e-6 +0.4; %border of the freq. range #1
 
 wf_2 = (2*pi*(c/wlf(end))*1e-6); %border of the freq. range #2
 
@@ -56,12 +56,11 @@ k = wf.*1e15.*n./c; %wavenumber
 
 zk = (z*1e-3)'*k; %kz matrix
 
-N = 28; %number of iterations in the algorithm
+N = 18; %number of iterations in the algorithm
 
 Err = 1; %initial value for error
 
 %% Process the data
-
 
 
 
@@ -72,7 +71,7 @@ wl = arrayfun(@(i) mean(wl(i:i+n-1)),1:n:length(wl)-n+1); %resizing the waveleng
 
 w_exp = 2*pi*c./(wl.*1e-9)*1e-15; %wavelength to frequency for calibrated spectrometer
 
-img = imresize(imrotate(img,10,'bilinear','crop'),0.25); %4x binning, final image size 300x480
+img = imresize(imrotate(img,11,'bilinear','crop'),0.25); %4x binning, final image size 300x480
 
 %reinterpolate the scan onto frequency axis
 figure(1);
@@ -100,7 +99,7 @@ GDD = interp1(wf,GDD,wf,'linear');
 
 GD = cumtrapz(wf,GDD);
 
-phase = cumtrapz(wf,GD);
+phase = cumtrapz(wf,GD) + wf.*110;
 
 % Gaussian pulse 
 Gauss = exp(-((wf-w0).^2)./sigma).*exp(1i.*phase); % eq(6)
@@ -122,7 +121,7 @@ for i = 1:N
 GGuess = GGuess.*pm; %Initial guess multiplied by pm. eq(8)
 
 %frequency shift (if needed)
-dw = wf(end)-wf(end-1);
+dw = abs(mean(diff(wf)));
 Np = length(w_exp);
 t = linspace(0,(Np-1)*2*pi/dw/Np,Np); 
 
@@ -173,9 +172,9 @@ drawnow;
 end
 
 %% PLOT THE RESULTS
-
+% GGuess = GGuess.*exp(-1i.*wf*0000);
 phase = angle(GGuess);
-phase = (unwrap(phase)+ wf*150)./100 ;
+phase = unwrap(phase) ;
 
 %spectral domain
 figure(3);
@@ -191,15 +190,31 @@ ylabel('Spectral phase, rad')
 
 
 %temporal domain
+% dt = 2*pi*(wf(1)-wf(end))./wf.^2;
 
-% figure(4);
-
-Ret = ifft(GGuess,[],2);
+% t = linspace(-dt*(Np-1),dt*(Np-1),Np);
 
 
-% 
-% plot(abs(Ret).^2)
-% 
-% 
+
+figure(4);
+% [t,Ret] = IFFT(wf,GGuess);
+% Ret = ifftshift(Ret);
+Ret = fft(GGuess);
+phase = unwrap(angle(Ret));
+
+
+plot(t,abs(Ret).^2./max(abs(Ret).^2))
+
+yyaxis left
+ylabel('Intensity, a.u.')
+xlabel('time, fs')
+yyaxis right
+plot(t,phase)
+ylabel('Temporal phase, rad')
+
+
+
+
+
 
 
