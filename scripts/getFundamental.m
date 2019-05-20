@@ -3,13 +3,14 @@
 %%% INPUT: res - sensor resolution
 %%%        bin - binning factor
 %%%        Lext/Hext - low/high extension of frequency range, IN RAD/fs!!
-%%% OUTPUT:
-%%%        w - frequency vector
-%%%        I - spectral intensity
+%%% OUTPUT: spec:
+%%%         1st column: frequency in rad/fs
+%%%         2nd column: normalized intensity
+
 %res,bin,Lext,Hext
 
 
-function [w,I] = getFundamental(res,bin,Lext,Hext) 
+function spec = getFundamental(res,bin,Lext,Hext) 
 if nargin <3
     Lext = 0; %default values - no extension of the freq.range, just use the fundamental.
     Hext = 0; 
@@ -27,7 +28,7 @@ filter = {'*.dat';'*.txt'};
 %% process
   c = 3e8; % speed of light
   
-  wf_1 = 2*pi*(c/M(1,1))*1e-6 + Hext; %border of the defined freq. range #1 
+  wf_1 = 5 + Hext; %border of the defined freq. range #1 
 
   wf_2 = (2*pi*(c/M(end,1))*1e-6) - Lext; %border of the defined freq. range #2
 
@@ -37,7 +38,7 @@ filter = {'*.dat';'*.txt'};
   
   I = max(0,M(:,2)); % reject negative intensity values
   
-  I = interp1(w_exp,I,w,'linear',0)./w.^2; %reinterpolate
+  I = interp1(w_exp,I,w,'linear')./w.^2; %reinterpolate
   
   I = I./max(I); %normalize
   
@@ -52,5 +53,7 @@ filter = {'*.dat';'*.txt'};
   w = arrayfun(@(i) mean(w(i:i+bin-1)),1:bin:length(w)-bin+1); %binning
   
   I = arrayfun(@(i) mean(I(i:i+bin-1)),1:bin:length(I)-bin+1);
+  
+  spec = [w;I]';
   
 end

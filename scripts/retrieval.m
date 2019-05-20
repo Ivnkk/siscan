@@ -7,20 +7,22 @@ clear
 
 %% Load the data 
 
-addpath('G:\Atto\Data\LASC\MHz\mhzharmonics\2019-02-25\');
+addpath('G:\Atto\Data\LASC\MHz\mhzharmonics\2019-05-09\');
 
 load('wavelength.mat') % imaging spectrometer wavelength calibration file
-
+% fnspec = getFundamental(1920,4);
 load('fundamental.mat') % fundamental spectrum
 
-Int = abs(Int)./max(Int); %normalize fundamental
+Int = abs(fnspec(:,2))./max(fnspec(:,2)); %normalize fundamental
 
-img = imread('siscan1ststage3','jpg'); %scan to load
+img = imread('try8','png'); %scan to load
 
+img = img - 8;
+img = max(0,img);
 
 %% Constants
 
-tau = 6; %FWHM of the pulse in time domain in fs
+tau = 20; %FWHM of the pulse in time domain in fs
 
 c = 3e8; %speed of light in vacuum, m/s
 
@@ -30,21 +32,16 @@ w0 = 2*pi*(c/wl_0)*1e-15; %central frequency, rad/fs
 
 sigma = 8*log(2)/(tau^2); %std.dev in gaussian pulse 1/fs^2
 
-wf_1 = 2*pi*(c/wlf(1))*1e-6 +0.4; %border of the freq. range #1
+wf = fnspec(:,1)';
 
-wf_2 = (2*pi*(c/wlf(end))*1e-6); %border of the freq. range #2
-
-wf = linspace(wf_1,wf_2,480); %frequency range of the fundamental
-
-wf3 = (2*pi*(c./wlf)*1e-6);
-
-Int = interp1(wf3,Int,wf,'linear',0)./wf.^2;
+wf = linspace(wf(1)+0,wf(end),480);
+Int = interp1(wf,Int,wf,'linear',0)./wf.^2;
 
 Int = abs(Int)./max(Int);
 
 GVD = 50.621; %BK7 group velocity dispersion, fs^2/mm
 
-z = linspace(-4,4,300); % glass insertion range.
+z = linspace(1.8,-1.7,300); % glass insertion range.
 
 iter = 1; % number of iterations in the algorithm
 
@@ -56,7 +53,7 @@ k = wf.*1e15.*n./c; %wavenumber
 
 zk = (z*1e-3)'*k; %kz matrix
 
-N = 18; %number of iterations in the algorithm
+N = 100; %number of iterations in the algorithm
 
 Err = 1; %initial value for error
 
@@ -71,11 +68,11 @@ wl = arrayfun(@(i) mean(wl(i:i+n-1)),1:n:length(wl)-n+1); %resizing the waveleng
 
 w_exp = 2*pi*c./(wl.*1e-9)*1e-15; %wavelength to frequency for calibrated spectrometer
 
-img = imresize(imrotate(img,11,'bilinear','crop'),0.25); %4x binning, final image size 300x480
+img = imresize(imrotate(img,0,'bilinear','crop'),0.25); %4x binning, final image size 300x480
 
 %reinterpolate the scan onto frequency axis
 figure(1);
-colormap(jet)
+colormap(parula)
 w3 = wf+wf(end);
 % w3 = linspace(w_exp(1),w_exp(end),length(w_exp)); 
 img = double(img);
@@ -99,7 +96,7 @@ GDD = interp1(wf,GDD,wf,'linear');
 
 GD = cumtrapz(wf,GDD);
 
-phase = cumtrapz(wf,GD) + wf.*110;
+phase = cumtrapz(wf,GD);
 
 % Gaussian pulse 
 Gauss = exp(-((wf-w0).^2)./sigma).*exp(1i.*phase); % eq(6)
@@ -114,7 +111,7 @@ pm = exp(1i.*zk); %phase matrix. eq(7)
 
 Meas = sqrt(double(img)); %measured d scan field
 
-for i = 1:N
+for i =1:N 
     
 
 
@@ -143,7 +140,7 @@ Gw2 = fft(Gt2,[],2).*conj(pm); %to frequency domain and remove phase from glass.
 
 GGuess = sum(Gw2.*(z(2)-z(1)))./(z(end)-z(1)); %new field. eq(18)
 
-% GGuess = sqrt(Int).*exp(1i.*angle(GGuess)); %multiply by fundamental
+GGuess = sqrt(Int).*exp(1i.*angle(GGuess)); %multiply by fundamental
 
 %error estimation
 
@@ -163,7 +160,7 @@ Err = sum(sum((img1 - mu.*retr).^2))./(length(z)*length(wf)); %error estimation
 
 %plot the trace
 figure(2);
-colormap(jet)
+colormap(parula)
 imagesc(w3,z,abs(Gshgw).^2)
 ylabel('glass,mm')
 xlabel('frequency, rad/fs')
@@ -174,7 +171,7 @@ end
 %% PLOT THE RESULTS
 % GGuess = GGuess.*exp(-1i.*wf*0000);
 phase = angle(GGuess);
-phase = unwrap(phase) ;
+phase = unwrap(phase)-20*wf;
 
 %spectral domain
 figure(3);
@@ -187,6 +184,7 @@ xlabel('freq, rad/fs')
 yyaxis right
 plot(wf,phase)
 ylabel('Spectral phase, rad')
+xlim([1.4 3.1])
 
 
 %temporal domain
@@ -197,9 +195,9 @@ ylabel('Spectral phase, rad')
 
 
 figure(4);
-% [t,Ret] = IFFT(wf,GGuess);
-% Ret = ifftshift(Ret);
-Ret = fft(GGuess);
+[t,Ret] = IFFT(wf,GGuess);
+Ret = ifftshift(Ret);
+% Ret = fft(GGuess);
 phase = unwrap(angle(Ret));
 
 
