@@ -193,7 +193,6 @@ hold off
 %temporal domain
 Np = length(wf);
 dt = mean(2*pi*(wf(1)-wf(end))./wf.^2);
-
 t = linspace(-dt*(Np-1),dt*(Np-1),Np);
 
 
