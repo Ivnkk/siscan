@@ -8,6 +8,7 @@ function [w_axis,phase] = generate_phase(wl,wl_center,phase_vec)
 
 w_axis = 2*pi*300./wl; %freq, rad/fs
 w_center = 2*pi*300./wl_center;
+w_axis = linspace(w_axis(1),w_axis(end),length(w_axis)); %reinterpolate to have equal spacing on frequency axis
 
 taylor_factor = 1./factorial(length(phase_vec)-1:-1:0);
 
