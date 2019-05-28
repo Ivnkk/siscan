@@ -14,7 +14,7 @@ addpath('D:\PhD\Programmes\MATLAB\siscan\scripts\data');
 
 load('wavelength.mat') % imaging spectrometer wavelength calibration file
 
-load('fund1.mat') % fundamental spectrum
+load('fund2stage.mat') % fundamental spectrum
 
 Int = fnspec(:,2)'; 
 
@@ -22,9 +22,9 @@ wf = fnspec(:,1)';
 
 [maxval,idx] = max(Int);
 
-img = imread('1st1','png'); %scan to load
+img = imread('2ndstage3','png'); %scan to load
 
-img = img - 8;
+img = img - 0;
 img = max(0,img);
 
 %% Constants
@@ -53,7 +53,7 @@ k = wf.*1e15.*n./c; %wavenumber
 
 zk = (z*1e-3)'*k; %kz matrix
 
-N = 200; % max number of iterations in the algorithm
+N = 400; % max number of iterations in the algorithm
 
 Err = 1; %initial value for error
 
@@ -101,9 +101,24 @@ GDD = interp1(wf,GDD,wf,'linear');
 
 GD = cumtrapz(wf,GDD);
 
-phase = cumtrapz(wf,GD);
+phase = cumtrapz(wf,GD) - 50;
 
-% phase = 50;
+
+
+int_z=sum(img,2);
+
+int_z=int_z/sum(int_z);
+
+intzz=wextend('ac','sp0',int_z,length(wf)-1,'d');
+
+idz=int_z==max(int_z);
+
+Meas = sqrt(double(img)); %measured d scan field
+
+pm = exp(1i.*zk); %phase matrix. eq(7)
+
+
+% GGuess=abs(ifft(sqrt(fft(Meas(idz,:),[],2)),[],2));
 
 % Gaussian pulse 
 GGuess = exp(-((wf-w0).^2)./sigma).*exp(1i.*phase); % eq(6)
@@ -112,29 +127,17 @@ GGuess = exp(-((wf-w0).^2)./sigma).*exp(1i.*phase); % eq(6)
 
 %% RETRIEVE
 
-% GGuess = kron(Gauss,ones(length(z),1)); %extend gauss pulse vector into matrix
-
-pm = exp(1i.*zk); %phase matrix. eq(7)
-
-while Err>1e-3
+while Err>1e-4
     
-
-
 if iter >= N
     break
 end
 
-GGuess = kron(GGuess,ones(length(z),1));
+GGuess = kron(GGuess,ones(length(z),1)); %extend pulse vector into matrix
 
-Meas = sqrt(double(img)); %measured d scan field
+Gt = ifft(GGuess.*pm,[],2); %to time domain. eq(8) and eq(9)
 
-GGuess = GGuess.*pm; %Initial guess multiplied by pm. eq(8)
-
-Gt = ifft(GGuess,[],2); %to time domain. eq(9)
-
-Gshgt = Gt.^2; %generate shg. eq(10)
-
-Gshgw = fft(Gshgt,[],2); %to frequency domain. eq(11)
+Gshgw = fft(Gt.^2,[],2); %generate shg and go to frequency domain. eq(11)
 
 Gup = Meas.*exp(1i.*angle(Gshgw)); %multiply by measured intensity. eq(12)
 
@@ -142,17 +145,19 @@ Gtr = ifft(Gup,[],2); %to time domain. eq(13)
 
 P = Gtr.*conj(Gt); %P coeff. eq(14)
 
-Gt2 = nthroot(abs(P),3).*exp(1i.*angle(P)); %next guess. eq(15)
+Gt2 = abs(P.^(1/3)).*exp(1i.*angle(P)); %next guess. eq(15)
 
-Gw2 = fft(Gt2,[],2).*conj(pm); %to frequency domain and remove phase from glass. eq(16) and (17)
+Gw2 = fft(Gt2,[],2).*exp(-1i.*zk); %to frequency domain and remove phase from glass. eq(16) and (17)
 
-GGuess = sum(Gw2.*(z(2)-z(1)))./(z(end)-z(1)); %new field. eq(18)
+GGuess = sum(Gw2.*intzz,1);
+
+% GGuess = sum(Gw2.*(z(2)-z(1)))./(z(end)-z(1)); %new field. eq(18)
 
 GGuess = sqrt(Int).*exp(1i.*angle(GGuess)); %multiply by fundamental
 
 %error estimation
 
-retr = abs(Gshgw).^2./max(max(abs(Gshgw).^2))+eps; %normalized retrieved scan
+retr = abs(Gshgw).^2./max(max(abs(Gshgw).^2)); %normalized retrieved scan
 
 mu = sum(img.*retr)./(sum(retr)); %minimization vector/constant
 
@@ -198,6 +203,7 @@ ylabel('Spectral power, a.u.')
 xlabel('freq, rad/fs')
 legend('Retrieved', 'Measured')
 yyaxis right
+
 plot(wf,phase)
 ylabel('Spectral phase, rad')
 legend('Phase')
