@@ -71,9 +71,7 @@ wl = arrayfun(@(i) mean(wl(i:i+n-1)),1:n:length(wl)-n+1); %resizing the waveleng
 w_exp = 2*pi*c./(wl.*1e-9)*1e-15; %wavelength to frequency for calibrated spectrometer
 
 img = imresize(img,0.25,'nearest'); %4x binning, final image size 300x480
-for k = 1:2
-    img = imdiffusefilt(img);
-end
+
 %reinterpolate the scan onto frequency axis
 figure(1);
 colormap(parula)
@@ -148,7 +146,7 @@ Gw2 = fft(Gt2,[],2).*conj(pm); %to frequency domain and remove phase from glass.
 
 GGuess = sum(Gw2.*(z(2)-z(1)))./(z(end)-z(1)); %new field. eq(18)
 
-GGuess = sqrt(Int).*exp(1i.*angle(GGuess)); %multiply by fundamental
+% GGuess = sqrt(Int).*exp(1i.*angle(GGuess)); %multiply by fundamental
 
 %error estimation
 
@@ -183,11 +181,10 @@ drawnow;
 end
 
 %% PLOT THE RESULTS
-
-%spectral domain
 phase = angle(GGuess);
 phase = unwrap(phase);
 
+%spectral domain
 figure(3);
 plot(wf,abs(GGuess).^2./max(abs(GGuess).^2.))
 title('Spectral domain')
@@ -207,17 +204,25 @@ hold off
 %temporal domain
 Np = length(wf);
 dt = mean(2*pi*(wf(1)-wf(end))./wf.^2);
+
 t = linspace(-dt*(Np-1),dt*(Np-1),Np);
 
+
+
 figure(4);
+% [t,Ret] = IFFT(wf,GGuess);
 Ret = ifft(GGuess);
 Ret = ifftshift(Ret);
+% Ret = fft(GGuess);
 phase = unwrap(angle(Ret));
+
+
 t2 = linspace(t(1),t(end),1920);
 Inten = abs(Ret).^2./max(abs(Ret).^2);
 Inten = interp1(t,Inten,t2,'pchip');
 phase = interp1(t,phase,t2,'pchip');
 plot(t2,Inten)
+
 yyaxis left
 title ('Temporal intensity profile')
 ylabel('Intensity, a.u.')

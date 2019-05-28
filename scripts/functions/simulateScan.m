@@ -7,7 +7,7 @@ function [scan,Ew,Et] = simulateScan(Shape,tau,phase,w0,wf,z)
 %tau: pulse duration in fs
 %phase: phase function. can be generated e.g. by Jan's script generate_phas
 %w0 - central frequency, rad/fs
-%w - frequency vector, rad/fs
+%wf - frequency vector, rad/fs
 %z - glass insertion range, mm
 %   Detailed explanation goes here
 
@@ -29,7 +29,7 @@ switch Shape
 end
 
 %phase matrix
-
+wf = linspace(wf(1)-0.5,wf(end)+0.5,length(wf));
 wl_fun = (2*pi*c./wf).*1e-9; %convert freq. to wl to calculate refr.index 
 % wl_fun = linspace(wl_fun(1),wl_fun(end),length(wl_fun));
 n = sqrt(1+1.03961212./(1-0.00600069867./wl_fun.^2)+0.231792344./(1-0.0200179144./wl_fun.^2)+1.01046945./(1-103.560653./wl_fun.^2)); %BK7 refractive index
@@ -53,8 +53,8 @@ Et = ifft(Ewf,[],2);
 Eshg = Et.^2;
 
 dscan = fft(Eshg,[],2);
-
-scan = abs(dscan).^2;
+dscan = fftshift(dscan,2);
+scan = abs(dscan).^2./max(max(abs(dscan).^2.));
 
 figure();
 imagesc(wf+wf(1),z,scan)
