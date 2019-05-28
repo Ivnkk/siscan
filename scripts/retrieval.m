@@ -14,7 +14,7 @@ addpath('D:\PhD\Programmes\MATLAB\siscan\scripts\data');
 
 load('wavelength.mat') % imaging spectrometer wavelength calibration file
 
-load('fund.mat') % fundamental spectrum
+load('fund1.mat') % fundamental spectrum
 
 Int = fnspec(:,2)'; 
 
