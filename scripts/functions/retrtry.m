@@ -1,4 +1,4 @@
-function [retr,field] = retrbasic(img,wf,z,N,fund)
+function [retr,field] = retrtry(img,wf,z,N,fund)
 %RETRFUN Summary of this function goes here
 % retrieval function. based on fast retrieval algorithm by miguel.
 
@@ -18,6 +18,8 @@ function [retr,field] = retrbasic(img,wf,z,N,fund)
 %% Initialization & constants
 
 % constants
+
+inten  = abs(fund.^2)./max(abs(fund.^2));
 
 w3 = wf+wf(1); %shg frequencies
 
@@ -66,15 +68,15 @@ intzz=wextend('ac','sp0',int_z,length(wf)-1,'d');
 
 idz=int_z==max(int_z);
 
-Meas = sqrt(img); %measured d scan field
+amp_trace = sqrt(img); %measured d scan field
 
-pm = exp(1i.*zk); %phase matrix. eq(7)
+% pm = exp(1i.*zk); %phase matrix. eq(7)
 
 % Gaussian pulse 
 GGuess = sqrt(exp(-((wf-w0).^2)./sigma)).*exp(1i.*phase); % eq(6)
 
-% GGuess=abs(ifft(sqrt(fft(Meas(idz,:),[],2)),[],2));
-
+% GGuess=abs(ifft(sqrt(fft(amp_trace(idz,:),[],2)),[],2));
+% 
 %% retrieval
 %extend gauss pulse vector into matrix
 
@@ -88,30 +90,28 @@ while Err > 5e-5
         break
     end
     
-    GGuess = kron(GGuess,ones(length(z),1)); %extend pulse vector into matrix
+    amp_i = kron(GGuess,ones(length(z),1)); % extend fund vector into a matrix
     
-    Gt = ifft(GGuess.*pm,[],2); %to time domain. eq(8) and eq(9)
+    U_i=ifft(amp_i.*exp(1i*zk),[],2); % multiply by phase matrix and ifft to time domain
     
-    Gshgw = fft(Gt.^2,[],2); %generate shg and go to frequency domain. eq(11)
-    
-    Gup = Meas.*exp(1i.*angle(Gshgw)); %multiply by measured intensity. eq(12)
-    
-    Gtr = ifft(Gup,[],2); %to time domain. eq(13)
-    
-    P = Gtr.*conj(Gt); %P coeff. eq(14)
-    
-    Gt2 = abs(P.^(1/3)).*exp(1i.*angle(P)); %next guess. eq(15)
-    
-    Gw2 = fft(Gt2,[],2).*exp(-1i.*zk); %to frequency domain and remove phase from glass. eq(16) and (17)
-    
-%     GGuess = sum(Gw2.*intzz,1);
-    GGuess = sum(Gw2.*(z(2)-z(1)))./(z(end)-z(1)); %new field. eq(18)
+    S_shg=fft(U_i.^2,[],2); %shg and go to freq domaing
 
-%     GGuess = sqrt(abs(fund).^2).*exp(1i.*angle(GGuess)); %multiply by fundamental
+    S_f=amp_trace.*exp(1i*angle(S_shg)); %multiply by scan amplitude and keep the phase
     
+    U_t=ifft(S_f,[],2); %to time domain
+    
+    P=U_t.*conj(U_i); 
+    
+    UU_t=abs(P.^(1/3)).*exp(1i*angle(P));
+    
+    UU_f=fft(UU_t,[],2).*exp(-1i*zk);
+    
+    E_f2=sum(UU_f.*intzz,1);
+    
+    GGuess=sqrt(inten).*exp(1i*angle(E_f2));
     %error estimation
     
-    retr = abs(Gshgw).^2./max(max(abs(Gshgw).^2)); %normalized retrieved scan
+    retr = abs(S_shg).^2./max(max(abs(S_shg).^2)); %normalized retrieved scan
     
     img1 = img./max(max(img)); %normalized measured
     

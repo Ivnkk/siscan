@@ -121,7 +121,7 @@ pm = exp(1i.*zk); %phase matrix. eq(7)
 % GGuess=abs(ifft(sqrt(fft(Meas(idz,:),[],2)),[],2));
 
 % Gaussian pulse 
-GGuess = exp(-((wf-w0).^2)./sigma).*exp(1i.*phase); % eq(6)
+GGuess = sqrt(exp(-((wf-w0).^2)./sigma)).*exp(1i.*phase); % eq(6)
 
 
 

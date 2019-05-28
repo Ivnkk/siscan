@@ -12,7 +12,7 @@ amp_trace=sqrt(intshg); %amplitude of the trace
 
 %????
 % amask=wextend('ar','sp0',f0*3,length(glass)-1,'d');
-% amp_trace=amp_trace.*amask+0.01*a0*rand(size(amp_trace));
+% amp_trace=amp_trace.*amask+0.01*a0*rand(size(amp_trace)); noise addition?
 %????
 
 int_z=sum(intshg,2);
