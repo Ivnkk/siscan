@@ -8,6 +8,7 @@ function [retr,field] = retrbasic(img,wf,z,N,fund)
 % wf - fundamental frequency vector
 % z - glass insertion range
 % N - maximum number of iterations in the algorithm
+% fund - measured fundamental spectrum
 
 %outputs:
 % retr  - retrieved dscan
@@ -42,7 +43,7 @@ idz=int_z==max(int_z);
 GGuess=abs(ifft(sqrt(fft(Meas(idz,:),[],2)),[],2));
 %% retrieval
 
-while Err>5e-5
+while Err>1e-4
     
     GGuess = kron(GGuess,ones(length(z),1)); %extend pulse vector into matrix
     
