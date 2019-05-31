@@ -8,13 +8,13 @@ close all
 
 %% Load the data 
 
-addpath('G:\Atto\Data\LASC\MHz\mhzharmonics\2019-05-22\'); %rewrite paths when implementing into GUI
+addpath('G:\Atto\Data\LASC\MHz\mhzharmonics\2019-05-22\'); 
 addpath('D:\PhD\Programmes\MATLAB\siscan\scripts\functions');
 addpath('D:\PhD\Programmes\MATLAB\siscan\scripts\data');
 
 load('wavelength.mat') % imaging spectrometer wavelength calibration file
 
-load('fund2stage.mat') % fundamental spectrum
+load('fund1.mat') % fundamental spectrum
 
 Int = fnspec(:,2)'; 
 
@@ -22,7 +22,7 @@ wf = fnspec(:,1)';
 
 [maxval,idx] = max(Int);
 
-img = imread('2ndstage3','png'); %scan to load
+img = imread('1st1','png'); %scan to load
 
 img = img - 0;
 img = max(0,img);
@@ -71,9 +71,9 @@ wl = arrayfun(@(i) mean(wl(i:i+n-1)),1:n:length(wl)-n+1); %resizing the waveleng
 w_exp = 2*pi*c./(wl.*1e-9)*1e-15; %wavelength to frequency for calibrated spectrometer
 
 img = imresize(img,0.25,'nearest'); %4x binning, final image size 300x480
-for k = 1:2
-    img = imdiffusefilt(img);
-end
+% for k = 1:2
+%     img = imdiffusefilt(img);
+% end
 %reinterpolate the scan onto frequency axis
 figure(1);
 colormap(parula)
@@ -149,9 +149,7 @@ Gt2 = abs(P.^(1/3)).*exp(1i.*angle(P)); %next guess. eq(15)
 
 Gw2 = fft(Gt2,[],2).*exp(-1i.*zk); %to frequency domain and remove phase from glass. eq(16) and (17)
 
-GGuess = sum(Gw2.*intzz,1);
-
-% GGuess = sum(Gw2.*(z(2)-z(1)))./(z(end)-z(1)); %new field. eq(18)
+GGuess = sum(Gw2.*intzz,1); %new field. eq(18)
 
 GGuess = sqrt(Int).*exp(1i.*angle(GGuess)); %multiply by fundamental
 
@@ -164,6 +162,8 @@ mu = sum(img.*retr)./(sum(retr)); %minimization vector/constant
 mu = kron(mu,ones(length(z),1));
 
 Err = sum(sum((img - mu.*retr).^2))./(length(z)*length(wf)); %error estimation
+
+% Err=1-sum(sum(sqrt(img.*retr)))/sqrt(sum(sum(retr))*sum(sum(img)));
 
 
 
