@@ -33,9 +33,9 @@ wf = fnspec(:,1)';
 
 [maxval,idx] = max(Int);
 
-img = imread('1st1','png'); %scan to load
+img = imread('try1','png'); %scan to load
 
-img = img - 4;
+img = img - 2;
 img = max(0,img);
 
 
@@ -57,7 +57,7 @@ wl_f = 2*pi*300./wf; %wavelength vector. spacing?
 
 z = linspace(-2,2,300); % glass insertion range.
 
-phase=2*pi*wextend('ac','sp0',z',length(wf)-1,'r').*nBK7(wextend('ar','sp0',wl_f,length(z)-1,'d')/1000)./(wextend('ar','sp0',wl_f,length(z)-1,'d')/1000000); % kz matrix 
+phase = 2*pi*wextend('ac','sp0',z',length(wf)-1,'r').*nBK7(wextend('ar','sp0',wl_f,length(z)-1,'d')/1000)./(wextend('ar','sp0',wl_f,length(z)-1,'d')/1000000); % kz matrix 
 
 n = 4; %bin factor
 
@@ -88,9 +88,9 @@ xlabel('frequency, rad/fs')
 
 Meas=sqrt(double(img)); %amplitude of the trace
 
-int_z=sum(img,2);
+int_z=sum(img,2); 
 
-int_z=int_z/sum(int_z);
+int_z=int_z/sum(int_z); %normalize
 
 intzz=wextend('ac','sp0',int_z,length(wf)-1,'d');
 
@@ -99,7 +99,7 @@ idz=int_z==max(int_z);
 GGuess=abs(ifft(sqrt(fft(Meas(idz,:),[],2)),[],2));
 %% retrieval
 
-while Err>1e-4
+while Err>0.02
     
     GGuess = kron(GGuess,ones(length(z),1)); %extend pulse vector into matrix
     
@@ -119,7 +119,7 @@ while Err>1e-4
     
     GGuess = sum(Gw2.*intzz,1);
     
-%     GGuess = sqrt(Int).*exp(1i.*angle(GGuess));
+    GGuess = sqrt(Int).*exp(1i.*angle(GGuess)); %multiply by fundamental
     
     %error estimation
     
@@ -163,13 +163,24 @@ yyaxis right
 
 plot(wf,phase)
 ylabel('Spectral phase, rad')
-legend('Phase')
 xlim([1.4 3.1])
+legend('Retrieved', 'Measured','Phase')
 hold off
 
 %temporal domain
 Np = length(wf);
-dt = mean(2*pi*(wf(1)-wf(end))./wf.^2);
+% fs = wf(end)*2/2/pi;
+
+% dt = 1/fs;
+
+% t =(-Np/2:Np/2-1)*dt;
+%     Np = length(w_exp);
+% dw = abs(mean(diff(wf)));
+% dt = 2*pi/dw;
+% t =(-Np/2:Np/2-1)*dt;
+% t = linspace(-(Np-1)*dt/Np,(Np-1)*dt/Np,Np);
+
+dt = mean(2*pi*(wf(1)- wf(end))./wf.^2);
 t = linspace(-dt*(Np-1),dt*(Np-1),Np);
 
 figure(4);
@@ -178,8 +189,12 @@ Ret = ifftshift(Ret);
 phase = unwrap(angle(Ret));
 t2 = linspace(t(1),t(end),1920);
 Inten = abs(Ret).^2./max(abs(Ret).^2);
+
+
 Inten = interp1(t,Inten,t2,'pchip');
 phase = interp1(t,phase,t2,'pchip');
+[val,idx] = max(Inten);
+t2 = t2 + t2(end-idx);
 plot(t2,Inten)
 yyaxis left
 title ('Temporal intensity profile')
