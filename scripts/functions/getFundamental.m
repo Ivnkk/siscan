@@ -2,7 +2,8 @@
 %%% spectrum to match the dimensions of the single shot dscan
 %%% INPUT: res - sensor resolution
 %%%        bin - binning factor
-%%%        Lext/Hext - low/high extension of frequency range, IN RAD/fs!!
+%%%        OPTIONAL Lext/Hext - low/high extension of frequency range, IN RAD/fs!!
+%%%        
 %%% OUTPUT: spec:
 %%%         1st column: frequency in rad/fs
 %%%         2nd column: normalized intensity
@@ -28,17 +29,19 @@ filter = {'*.dat';'*.txt'};
 %% process
   c = 3e8; % speed of light
   
-  wf_1 = 5 + Hext; %border of the defined freq. range #1 
+%   wf_1 = 4 + Hext; %border of the defined freq. range #1 
 
-  wf_2 = (2*pi*(c/M(end,1))*1e-6) - Lext; %border of the defined freq. range #2
+%   wf_2 = (2*pi*(c/M(end,1))*1e-6) - Lext; %border of the defined freq. range #2
 
   w_exp = 2*pi*(c./M(:,1))*1e-6; %measured frequency range
   
-  w = linspace(wf_1,wf_2,length(M(:,1)))'; %axis to interpolate to
+%   w = fliplr(linspace(wf_1,wf_2,length(M(:,1)))'); %axis to interpolate to
   
-  I = max(0,M(:,2)); % reject negative intensity values
+  w = linspace(w_exp(end), w_exp(1),length(M(:,1)))';
   
-  I = interp1(w_exp,I,w,'linear')./w.^2; %reinterpolate
+  I = fliplr(max(0,M(:,2))); % reject negative intensity values
+  
+  I = interp1(w,I,w,'linear')./w.^2; %reinterpolate
   
   I = I./max(I); %normalize
   
@@ -46,7 +49,7 @@ filter = {'*.dat';'*.txt'};
  
   del = length(I) - res;
   
-  w(1:del) = [];% resizing
+  w(del:end) = [];% resizing
   
   I(1:del) = [];
   

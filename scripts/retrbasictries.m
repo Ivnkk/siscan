@@ -29,13 +29,13 @@ load('fund1.mat') % fundamental spectrum
 
 Int = fnspec(:,2)'./max(fnspec(:,2)'); 
 
+% wf = 2*pi*linspace(0.35,0.7,length(fnspec(:,1)));
+
 wf = fnspec(:,1)';
 
-[maxval,idx] = max(Int);
+img = imread('1st1','png'); %scan to load
 
-img = imread('try1','png'); %scan to load
-
-img = img - 2;
+img = img - 0;
 img = max(0,img);
 
 
@@ -43,7 +43,7 @@ img = max(0,img);
 %% Initialization & constants
 
 % constants
-N = 200;
+N = 300;
 
 iter = 1;
 
@@ -52,6 +52,8 @@ Err = 1;
 c = 3e8;
 
 w3 = wf+min(wf); %shg frequencies
+
+% w3 = wf+wf;
 
 wl_f = 2*pi*300./wf; %wavelength vector. spacing?
 
@@ -119,7 +121,7 @@ while Err>0.02
     
     GGuess = sum(Gw2.*intzz,1);
     
-    GGuess = sqrt(Int).*exp(1i.*angle(GGuess)); %multiply by fundamental
+%     GGuess = sqrt(Int).*exp(1i.*angle(GGuess)); %multiply by fundamental
     
     %error estimation
     
