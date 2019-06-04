@@ -6,7 +6,7 @@ n1=480; % number of points in the frequency domain
 
 n0=256; % number of points in the glass insertion domain
 
-f0=linspace(0.2,0.8,n1)+eps; %frequency vector
+f0=linspace(0.1,1.1,n1)+eps; %frequency vector
 
 cf=0.375; %central frequency
 
@@ -20,7 +20,8 @@ f1 = fnspec(:,1)/2/pi;
 
 % inten=fnspec(:,2)'.*exp(-(tau2*(f0-cf)).^2); % gaussian intensity profile
 
-inten=interp1(f1,fnspec(:,2)',f0,'linear',0);
+inten=interp1(f1,fnspec(:,2)',f0,'linear',0); %interpolate the spectrum on specified frequency axis
+
 inten=inten./max(inten); % normalize
 
 id=f0<cf; %step?

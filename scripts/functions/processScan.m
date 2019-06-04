@@ -8,22 +8,26 @@ function scan = processScan(img,fund,z,wl)
 
 
 % fundamental parameters
-wf = fund(:,1)';
-c = 3e8;
+f = fund(:,1)';
+
 %spectrometer calibrated wavelength binning
-n = 4;
-wl = arrayfun(@(i) mean(wl(i:i+n-1)),1:n:length(wl)-n+1);
-w_exp = 2*pi*c./(wl.*1e-9)*1e-15; % to frequency (second harmonic from calib)
 
-img = imresize(img,0.25,'nearest');% resizing the image
+wl = fliplr(wl);
 
-w3 = wf+wf(end); %second harmonic from fundamental
+wl = imresize(wl,1/3.75,'bilinear');
+f_exp = 300./wl;
+
+img = fliplr(img);
+
+img = imresize(imresize(img,[1024 2048],'bilinear'),0.25,'bilinear');% resizing the image
+
+f_shg = f + min(f); %second harmonic from fundamental
 img = double(img);
 
-[W_exp,Z]= meshgrid(w_exp,z); %dublicate the vectors
-[W3,Z2]=meshgrid(w3,z);
+[F_exp,Z]= meshgrid(f_exp,z); %dublicate the vectors
+[F_shg,Z2]=meshgrid(f_shg,z);
 
-img = interp2(W_exp,Z,img,W3,Z2,'spline',0);
+img = interp2(F_exp,Z,img,F_shg,Z2,'spline',0);
 
 scan = img;
 

@@ -17,89 +17,60 @@ clc
 clear
 close all
 
-%% Load the data 
-
 addpath('G:\Atto\Data\LASC\MHz\mhzharmonics\2019-05-22\'); 
 addpath('D:\PhD\Programmes\MATLAB\siscan\scripts\functions');
 addpath('D:\PhD\Programmes\MATLAB\siscan\scripts\data');
 
+%% Load the data 
+
 load('wavelength.mat') % imaging spectrometer wavelength calibration file
 
-load('fund1.mat') % fundamental spectrum
+load('fund3.mat') % fundamental spectrum
 
-Int = fnspec(:,2)'./max(fnspec(:,2)'); 
+Int = fnspec(:,2)'; %fundamental spectrum intensity
 
-wf = fnspec(:,1)';
+f = fnspec(:,1)'; %fundamental spectrum frequency 
 
-[maxval,idx] = max(Int);
+img = imread('1st1','png'); %scan to load
 
-img = imread('try1','png'); %scan to load
 
-img = img - 2;
-img = max(0,img);
 
 
 
 %% Initialization & constants
 
-% constants
-N = 200;
+N = 20; %max number of iterations
 
-iter = 1;
+iter = 1; % counter
 
-Err = 1;
+Err = 1; %rms error starting value
 
-c = 3e8;
+fshg = f+min(f); %shg frequencies
 
-w3 = wf+min(wf); %shg frequencies
+wl_f = 300./f; %wavelength vector. spacing?
 
-wl_f = 2*pi*300./wf; %wavelength vector. spacing?
+z = linspace(-2,2,256); % glass insertion range.
 
-z = linspace(-2,2,300); % glass insertion range.
+img = processScan(img,fnspec,z,wl);
 
-phase = 2*pi*wextend('ac','sp0',z',length(wf)-1,'r').*nBK7(wextend('ar','sp0',wl_f,length(z)-1,'d')/1000)./(wextend('ar','sp0',wl_f,length(z)-1,'d')/1000000); % kz matrix 
-
-n = 4; %bin factor
-
-wl = arrayfun(@(i) mean(wl(i:i+n-1)),1:n:length(wl)-n+1); %resizing the wavelength vector to match the binned image
-
-w_exp = 2*pi*c./(wl.*1e-9)*1e-15; %wavelength to frequency for calibrated spectrometer
-
-img = imresize(img,0.25,'nearest'); %4x binning, final image size 300x480
-% for k = 1:6
-%     img = imdiffusefilt(img);
-% end
-%reinterpolate the scan onto frequency axis
-figure(1);
-colormap(parula)
-img = double(img);
-
-[W_exp,Z]= meshgrid(w_exp,z); %dublicate the vectors
-[W3,Z2]=meshgrid(w3,z);
-
-img = interp2(W_exp,Z,img,W3,Z2,'spline',0);
-imagesc(w3,z,img)
 img = max(0,img);
-img = img./max(max(img));
-set(gca,'YDir','normal')
 
-ylabel('glass,mm')
-xlabel('frequency, rad/fs')
+phase = 2*pi*wextend('ac','sp0',z',length(f)-1,'r').*nBK7(wextend('ar','sp0',wl_f,length(z)-1,'d')/1000)./(wextend('ar','sp0',wl_f,length(z)-1,'d')/1000000); % kz matrix 
 
-Meas=sqrt(double(img)); %amplitude of the trace
+Meas=sqrt(img); %amplitude of the trace
 
 int_z=sum(img,2); 
 
 int_z=int_z/sum(int_z); %normalize
 
-intzz=wextend('ac','sp0',int_z,length(wf)-1,'d');
+intzz=wextend('ac','sp0',int_z,length(f)-1,'d');
 
 idz=int_z==max(int_z);
 
 GGuess=abs(ifft(sqrt(fft(Meas(idz,:),[],2)),[],2));
 %% retrieval
 
-while Err>0.02
+while Err>0.001
     
     GGuess = kron(GGuess,ones(length(z),1)); %extend pulse vector into matrix
     
@@ -119,7 +90,7 @@ while Err>0.02
     
     GGuess = sum(Gw2.*intzz,1);
     
-    GGuess = sqrt(Int).*exp(1i.*angle(GGuess)); %multiply by fundamental
+%     GGuess = sqrt(Int).*exp(1i.*angle(GGuess)); %multiply by fundamental
     
     %error estimation
     
@@ -132,14 +103,14 @@ while Err>0.02
     figure(2);
     colormap(parula)
     subplot(2,1,1)
-    imagesc(w3,z,retr)
-    set(gca,'YDir','normal')
+    imagesc(fshg,z,retr)
+    xlim([0.6 1])
     subplot(2,1,2)
-    imagesc(w3,z,img)
-    set(gca,'YDir','normal')
+    imagesc(fshg,z,img)
     title(['iter=',num2str(iter), 'Error=',num2str(Err)])
     ylabel('glass,mm')
-    xlabel('frequency, rad/fs')
+    xlabel('frequency, PHz')
+    xlim([0.6 1])
     drawnow;
     if iter>=N
         break
@@ -151,24 +122,24 @@ phase = angle(GGuess);
 phase = unwrap(phase);
 
 figure(3);
-plot(wf,abs(GGuess).^2./max(abs(GGuess).^2.))
+plot(f,abs(GGuess).^2./max(abs(GGuess).^2.))
 title('Spectral domain')
 hold on
-plot(wf,Int,'k--')
+plot(f,Int,'k--')
 yyaxis left
 ylabel('Spectral power, a.u.')
-xlabel('freq, rad/fs')
+xlabel('freq, PHz')
 legend('Retrieved', 'Measured')
 yyaxis right
 
-plot(wf,phase)
+plot(f,phase)
 ylabel('Spectral phase, rad')
-xlim([1.4 3.1])
+xlim([0.2 0.6])
 legend('Retrieved', 'Measured','Phase')
 hold off
 
 %temporal domain
-Np = length(wf);
+Np = length(f);
 % fs = wf(end)*2/2/pi;
 
 % dt = 1/fs;
@@ -180,7 +151,7 @@ Np = length(wf);
 % t =(-Np/2:Np/2-1)*dt;
 % t = linspace(-(Np-1)*dt/Np,(Np-1)*dt/Np,Np);
 
-dt = mean(2*pi*(wf(1)- wf(end))./wf.^2);
+dt = 1./abs((f(1)- f(end)));
 t = linspace(-dt*(Np-1),dt*(Np-1),Np);
 
 figure(4);
