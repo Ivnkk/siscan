@@ -1,9 +1,5 @@
 %%% this function imports the data from the text file and reshapes the
 %%% spectrum to match the dimensions of the single shot dscan
-%%% INPUT: res - sensor resolution
-%%%        bin - binning factor
-%%%        OPTIONAL Lext/Hext - low/high extension of frequency range, IN RAD/fs!!
-%%%        
 %%% OUTPUT: spec:
 %%%         1st column: frequency in rad/fs
 %%%         2nd column: normalized intensity
@@ -11,11 +7,8 @@
 %res,bin,Lext,Hext
 
 
-function spec = getFundamental(res,bin,Lext,Hext) 
-if nargin <3
-    Lext = 0; %default values - no extension of the freq.range, just use the fundamental.
-    Hext = 0; 
-end
+function spec = getFundamental() 
+
 %% open the dialog and import the data
 filter = {'*.dat';'*.txt'};
 [file,path] = uigetfile(filter);
@@ -26,37 +19,42 @@ filter = {'*.dat';'*.txt'};
   end
   M = readtable(fullfile(path,file),'Delimiter','tab','ReadVariableNames',false);
   M = str2double(table2array(M))./1e3;
+  
+  wl = M(:,1)';
+  wl = fliplr(wl);
+  
+  Int = M(:,2)';
+  Int = fliplr(Int);
+  Int(1774:end) = 0; %kill measured shg
+  
 %% process
-  c = 3e8; % speed of light
-  
-%   wf_1 = 4 + Hext; %border of the defined freq. range #1 
 
-%   wf_2 = (2*pi*(c/M(end,1))*1e-6) - Lext; %border of the defined freq. range #2
-
-  w_exp = 2*pi*(c./M(:,1))*1e-6; %measured frequency range
+  f = linspace(0.1,1.1,length(wl)); %desired frequency range
+   
+  f0 = 300./wl; % frequency range from the spectrometer
+   
+  I = max(0,Int); % reject negative intensity values
   
-%   w = fliplr(linspace(wf_1,wf_2,length(M(:,1)))'); %axis to interpolate to
-  
-  w = linspace(w_exp(end), w_exp(1),length(M(:,1)))';
-  
-  I = fliplr(max(0,M(:,2))); % reject negative intensity values
-  
-  I = interp1(w,I,w,'linear')./w.^2; %reinterpolate
+  I = interp1(f0,I,f,'linear',0)./f.^2; %reinterpolate
   
   I = I./max(I); %normalize
   
  %% resize 
  
-  del = length(I) - res;
+  f(1:389) = [];% resizing
   
-  w(del:end) = [];% resizing
+  f(end-399:end) = [];
   
-  I(1:del) = [];
+  I(1:389) = [];% resizing
   
-  w = arrayfun(@(i) mean(w(i:i+bin-1)),1:bin:length(w)-bin+1); %binning
+  I(end-399:end) = [];
+ 
+  bin = 4;
+  
+  f = arrayfun(@(i) mean(f(i:i+bin-1)),1:bin:length(f)-bin+1); %binning
   
   I = arrayfun(@(i) mean(I(i:i+bin-1)),1:bin:length(I)-bin+1);
   
-  spec = [w;I]';
+  spec = [f;I]';
   
 end
